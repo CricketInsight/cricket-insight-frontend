@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -23,21 +22,7 @@ import {
   Filler,
 } from "chart.js"
 import { Radar, Line } from "react-chartjs-2"
-import {
-  Target,
-  Moon,
-  Sun,
-  Award,
-  Activity,
-  TrendingUp,
-  Flame,
-  Crown,
-  Users,
-  BarChart3,
-  Search,
-  X,
-  ArrowLeft,
-} from "lucide-react"
+import { Target, Award, Activity, TrendingUp, Flame, Crown, Users, BarChart3, Search, X, ArrowLeft } from "lucide-react"
 import { NavigationMenu } from "@/components/navigation-menu"
 import Link from "next/link"
 
@@ -337,14 +322,14 @@ function PlayerSearchBar({ onPlayerSelect }: { onPlayerSelect: (playerId: number
 
   return (
     <>
-      <div ref={searchRef} className="relative w-full max-w-md">
+      <div ref={searchRef} className="relative w-full max-w-xs sm:max-w-sm md:max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
           <Input
             placeholder="Search players..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300"
+            className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/20 focus:border-white/40 transition-all duration-300 text-sm"
           />
           {searchTerm && (
             <Button
@@ -840,41 +825,53 @@ export default function PlayerProfile() {
       {/* Header */}
       <header className="relative bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex justify-between items-center h-16 gap-2 sm:gap-4">
+            {/* Left Section */}
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => window.history.back()}
                 className="text-white hover:bg-white/10 p-2 hover:scale-105 transition-all duration-300"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="bg-gradient-to-r from-green-500 to-blue-600 p-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110">
-                <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-white animate-pulse" />
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white animate-pulse" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              <div className="hidden sm:block">
+                <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   Player Profile
                 </h1>
-                <p className="text-xs text-white/60 hidden sm:block">Detailed Analytics</p>
+                <p className="text-xs text-white/60 hidden md:block">Detailed Analytics</p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Center Section - Search Bar */}
+            <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md mx-2 sm:mx-4">
               <PlayerSearchBar onPlayerSelect={setSelectedPlayerId} />
-              <NavigationMenu currentPage="players" />
+            </div>
+
+            {/* Right Section */}
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4 flex-shrink-0">
               <Link href="/player/compare" passHref>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10 hover:border-white/40 transition-all duration-300 hover:scale-105 bg-transparent flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-4"
+                  className="border-white/20 text-white hover:bg-white/10 hover:border-white/40 transition-all duration-300 hover:scale-105 bg-transparent flex items-center gap-1 text-xs sm:text-sm px-2 sm:px-3 md:px-4 py-1 sm:py-2"
                 >
                   <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Compare Player</span>
-                  <span className="sm:hidden">Compare</span>
+                  <span className="hidden sm:inline">Compare</span>
+                  <span className="sm:hidden">VS</span>
                 </Button>
               </Link>
+              <div className="hidden sm:block">
+                <NavigationMenu currentPage="players" />
+              </div>
+              {/* Mobile Navigation Menu */}
+              <div className="sm:hidden">
+                <NavigationMenu currentPage="players" />
+              </div>
             </div>
           </div>
         </div>

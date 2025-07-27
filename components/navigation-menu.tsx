@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Menu, Home, Users, Trophy, BarChart3 } from "lucide-react"
+import { Menu, Home, Users, Trophy, BarChart3, Brain } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface NavigationMenuProps {
@@ -19,6 +19,7 @@ export function NavigationMenu({ currentPage }: NavigationMenuProps) {
     { label: "Matches", href: "/matches", icon: Trophy, key: "matches" },
     { label: "Players", href: "/player/1", icon: Users, key: "players" },
     { label: "Teams", href: "/teams/1", icon: BarChart3, key: "teams" },
+    { label: "Insights", href: "/insights", icon: Brain, key: "insights" },
   ]
 
   const handleNavigation = (href: string) => {

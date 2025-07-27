@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Clock, MapPin, Activity, Search, Filter, ArrowLeft, Play, BarChart3 } from "lucide-react"
 import { NavigationMenu } from "@/components/navigation-menu"
+import { MatchCardSkeleton } from "@/components/skeletons/match-card-skeleton"
+import { useLoading } from "@/hooks/use-loading"
 
 // Mock match data
 const allMatches = [
@@ -97,6 +99,13 @@ const allMatches = [
 
 const formats = ["All", "Test", "ODI", "T20"]
 const statuses = ["All", "live", "completed", "upcoming"]
+
+// Mock API function
+const fetchMatches = async () => {
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  return allMatches
+}
 
 function MatchCard({ match }: { match: (typeof allMatches)[0] }) {
   const getStatusColor = (status: string) => {
@@ -245,9 +254,14 @@ export default function MatchesPage() {
   const [statusFilter, setStatusFilter] = useState("All")
   const [activeTab, setActiveTab] = useState("all")
 
+  // Use loading hook for matches data
+  const { isLoading, data: matches } = useLoading(fetchMatches, [], { minLoadingTime: 1500 })
+
   // Filter matches based on search and filters
   const filteredMatches = useMemo(() => {
-    return allMatches.filter((match) => {
+    if (!matches) return []
+
+    return matches.filter((match: any) => {
       const matchesSearch =
         searchTerm === "" ||
         match.team1.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -260,12 +274,12 @@ export default function MatchesPage() {
 
       return matchesSearch && matchesFormat && matchesStatus
     })
-  }, [searchTerm, formatFilter, statusFilter])
+  }, [matches, searchTerm, formatFilter, statusFilter])
 
   // Group matches by status for tabs
-  const liveMatches = filteredMatches.filter((m) => m.status === "live")
-  const upcomingMatches = filteredMatches.filter((m) => m.status === "upcoming")
-  const completedMatches = filteredMatches.filter((m) => m.status === "completed")
+  const liveMatches = filteredMatches.filter((m: any) => m.status === "live")
+  const upcomingMatches = filteredMatches.filter((m: any) => m.status === "upcoming")
+  const completedMatches = filteredMatches.filter((m: any) => m.status === "completed")
 
   const getMatchesByTab = () => {
     switch (activeTab) {
@@ -386,30 +400,36 @@ export default function MatchesPage() {
               value="all"
               className="text-white/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-blue-600 data-[state=active]:text-white"
             >
-              All ({filteredMatches.length})
+              All ({isLoading ? "..." : filteredMatches.length})
             </TabsTrigger>
             <TabsTrigger
               value="live"
               className="text-white/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-600 data-[state=active]:text-white"
             >
-              Live ({liveMatches.length})
+              Live ({isLoading ? "..." : liveMatches.length})
             </TabsTrigger>
             <TabsTrigger
               value="upcoming"
               className="text-white/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white"
             >
-              Upcoming ({upcomingMatches.length})
+              Upcoming ({isLoading ? "..." : upcomingMatches.length})
             </TabsTrigger>
             <TabsTrigger
               value="completed"
               className="text-white/80 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white"
             >
-              Completed ({completedMatches.length})
+              Completed ({isLoading ? "..." : completedMatches.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-6">
-            {getMatchesByTab().length === 0 ? (
+            {isLoading ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <MatchCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : getMatchesByTab().length === 0 ? (
               <Card className="bg-white/10 border-white/20">
                 <CardContent className="text-center py-12">
                   <Trophy className="w-16 h-16 text-white/40 mx-auto mb-4" />
@@ -419,7 +439,7 @@ export default function MatchesPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {getMatchesByTab().map((match) => (
+                {getMatchesByTab().map((match: any) => (
                   <MatchCard key={match.id} match={match} />
                 ))}
               </div>
@@ -428,7 +448,7 @@ export default function MatchesPage() {
         </Tabs>
 
         {/* Match Statistics Summary */}
-        {filteredMatches.length > 0 && (
+        {!isLoading && filteredMatches.length > 0 && (
           <Card className="bg-white/10 border-white/20">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">

@@ -702,17 +702,18 @@ function TeamOverviewBanner({ team }: { team: ReturnType<typeof generateTeamData
     <Card className={`bg-gradient-to-r ${team.colors.primary} text-white shadow-2xl border-0`}>
       <CardContent className="p-6 sm:p-8">
         <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
-          <div className="flex items-center gap-4">
-            <div className="text-6xl sm:text-8xl">{team.flag}</div>
-            <div className="text-center lg:text-left">
-              <h1 className="text-3xl sm:text-5xl font-bold mb-2">{team.name}</h1>
-              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-                <Badge className="bg-white/20 text-white hover:bg-white/30">ODI Rank #{team.rankings.odi}</Badge>
-                <Badge className="bg-white/20 text-white hover:bg-white/30">T20 Rank #{team.rankings.t20}</Badge>
-                <Badge className="bg-white/20 text-white hover:bg-white/30">Test Rank #{team.rankings.test}</Badge>
+          <div className="flex items-center gap-4 flex-row flex-wrap justify-center lg:flex-row lg:justify-start lg:items-center">
+              <div className="text-4xl sm:text-6xl lg:text-8xl">{team.flag}</div>
+              <div className="text-center lg:text-left">
+                <h1 className="text-xl sm:text-3xl lg:text-5xl font-bold mb-2">{team.name}</h1>
+                <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                  <Badge className="bg-white/20 text-white hover:bg-white/30">ODI Rank #{team.rankings.odi}</Badge>
+                  <Badge className="bg-white/20 text-white hover:bg-white/30">T20 Rank #{team.rankings.t20}</Badge>
+                  <Badge className="bg-white/20 text-white hover:bg-white/30">Test Rank #{team.rankings.test}</Badge>
+                </div>
               </div>
-            </div>
           </div>
+
 
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
             <div className="text-center lg:text-left">
@@ -1141,7 +1142,7 @@ export default function TeamPage() {
       <header className="relative bg-white/10 backdrop-blur-lg border-b border-white/20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center  space-x-2 sm:space-x-3 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -1153,19 +1154,27 @@ export default function TeamPage() {
               <div className="bg-gradient-to-r from-green-500 to-blue-600 p-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110">
                 <Users className="h-6 w-6 text-white animate-pulse" />
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   Team Profile
                 </h1>
-                <p className="text-xs text-white/60">Complete Team Analysis</p>
+                <p className="text-xs text-white/60 hidden md:block">Complete Team Analysis</p>
               </div>
             </div>
 
             {/* Team Search Bar */}
-            <div className="flex items-center gap-3">
+            <div className="lex-1 max-w-xs sm:max-w-sm md:max-w-md mx-2 sm:mx-4">
               <TeamSearchBar onTeamSelect={setSelectedTeamId} />
-              <NavigationMenu currentPage="teams" />
+             
             </div>
+            <div className="hidden sm:block">
+                <NavigationMenu currentPage="teams" />
+              </div>
+            <div className="sm:hidden">
+                
+              <NavigationMenu currentPage="teams" />
+
+              </div>
           </div>
         </div>
       </header>

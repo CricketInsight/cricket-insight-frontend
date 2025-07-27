@@ -384,7 +384,7 @@ export default function CricketInsights() {
             <NavigationMenu currentPage="dashboard" />
 
             {/* Mobile Menu Button */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            {/* <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm" className="md:hidden text-white hover:bg-white/10">
                   <Menu className="h-5 w-5" />
@@ -404,7 +404,7 @@ export default function CricketInsights() {
                   ))}
                 </div>
               </SheetContent>
-            </Sheet>
+            </Sheet> */}
           </div>
         </div>
       </header>
