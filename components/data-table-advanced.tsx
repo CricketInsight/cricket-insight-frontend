@@ -163,7 +163,7 @@ export function DataTableAdvanced({
   const visibleColumns = columns.filter((col) => col.visible)
 
   return (
-    <Card className="bg-white/10 border-white/20 backdrop-blur-lg">
+    <Card className="bg-slate-800/50 border-white/20 backdrop-blur-lg">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-lg">{title}</CardTitle>

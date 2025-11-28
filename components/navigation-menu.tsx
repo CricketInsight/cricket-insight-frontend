@@ -1,98 +1,118 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Menu, Home, Users, Trophy, BarChart3, Brain } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+
+import { Menu, Home, BarChart3, Users, Trophy, Shield } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface NavigationMenuProps {
   currentPage?: string
 }
 
+const navigationItems = [
+  {
+    title: "Home",
+    href: "/",
+    icon: Home,
+  },
+  {
+    title: "Matches",
+    href: "/matches",
+    icon: Trophy,
+  },
+  {
+    title: "Teams",
+    href: "/teams",
+    icon: Shield,
+  },
+  {
+    title: "Players",
+    href: "/player/compare",
+    icon: Users,
+  },
+  // {
+  //   title: "Insights",
+  //   href: "/insights",
+  //   icon: BarChart3,
+  // },
+]
+
 export function NavigationMenu({ currentPage }: NavigationMenuProps) {
-  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-
-  const menuItems = [
-    { label: "Dashboard", href: "/", icon: Home, key: "dashboard" },
-    { label: "Matches", href: "/matches", icon: Trophy, key: "matches" },
-    { label: "Players", href: "/player/1", icon: Users, key: "players" },
-    { label: "Teams", href: "/teams/1", icon: BarChart3, key: "teams" },
-    { label: "Insights", href: "/insights", icon: Brain, key: "insights" },
-  ]
-
-  const handleNavigation = (href: string) => {
-    router.push(href)
-    setIsOpen(false)
-  }
+  const pathname = usePathname()
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
       {/* Desktop Navigation */}
-      <div className="hidden md:flex items-center gap-2">
-        {menuItems.map((item) => {
+      <nav className="hidden md:flex items-center space-x-6">
+        {navigationItems.map((item) => {
           const Icon = item.icon
-          const isActive = currentPage === item.key
+          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+
           return (
-            <Button
-              key={item.key}
-              variant={isActive ? "default" : "ghost"}
-              size="sm"
-              onClick={() => handleNavigation(item.href)}
-              className={`
-                transition-all duration-300 hover:scale-105
-                ${
-                  isActive
-                    ? "bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg"
-                    : "text-white hover:bg-white/10 hover:text-white"
-                }
-              `}
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-white/20 text-white dark:bg-white/20 dark:text-white light:bg-slate-100 light:text-slate-900"
+                  : "text-white/80 hover:text-white hover:bg-white/10 dark:text-white/80 dark:hover:text-white dark:hover:bg-white/10 light:text-slate-600 light:hover:text-slate-900 light:hover:bg-slate-100",
+              )}
             >
-              <Icon className="w-4 h-4 mr-2" />
-              {item.label}
-            </Button>
+              <Icon className="h-4 w-4" />
+              <span>{item.title}</span>
+            </Link>
           )
         })}
-      </div>
+      </nav>
+
+
 
       {/* Mobile Navigation */}
-      <div className="md:hidden">
-        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white/10 hover:text-white transition-all duration-300 hover:scale-105"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white/10 backdrop-blur-lg border-white/20 text-white">
-            {menuItems.map((item) => {
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden text-white hover:bg-white/10 dark:text-white dark:hover:bg-white/10 light:text-slate-900 light:hover:bg-slate-100"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent
+          side="right"
+          className="w-[300px] bg-slate-900 dark:bg-slate-900 light:bg-white border-slate-800 dark:border-slate-800 light:border-slate-200"
+        >
+          <div className="flex flex-col space-y-4 mt-8">
+            {navigationItems.map((item) => {
               const Icon = item.icon
-              const isActive = currentPage === item.key
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+
               return (
-                <DropdownMenuItem
-                  key={item.key}
-                  onClick={() => handleNavigation(item.href)}
-                  className={`
-                    cursor-pointer transition-all duration-200
-                    ${
-                      isActive
-                        ? "bg-gradient-to-r from-green-500/20 to-blue-600/20 text-white"
-                        : "hover:bg-white/10 text-white/80 hover:text-white"
-                    }
-                  `}
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-white/20 text-white dark:bg-white/20 dark:text-white light:bg-slate-100 light:text-slate-900"
+                      : "text-white/80 hover:text-white hover:bg-white/10 dark:text-white/80 dark:hover:text-white dark:hover:bg-white/10 light:text-slate-600 light:hover:text-slate-900 light:hover:bg-slate-100",
+                  )}
                 >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {item.label}
-                </DropdownMenuItem>
+                  <Icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </Link>
               )
             })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

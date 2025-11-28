@@ -1,11 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -30,10 +29,14 @@ import {
   Download,
   Eye,
   BarChart3,
-  Filter,
-  RefreshCw,
+  PieChart,
+  LineChart,
+  TrendingUp,
 } from "lucide-react"
 import { format } from "date-fns"
+import { useLoading } from "@/hooks/use-loading"
+import { Filter, RefreshCw } from "lucide-react"
+import { insightsApi } from "@/lib/api/insights"
 
 interface Message {
   id: string
@@ -58,6 +61,8 @@ interface FilterState {
   overs: string[]
   bowlingStyles: string[]
   battingPositions: string[]
+  messages: Message[]
+  input: string
 }
 
 type MenuTab = "matches" | "players" | "scorecard" | "ballbyball" | "aiinsight"
@@ -427,21 +432,14 @@ export default function InsightsPage() {
     overs: [],
     bowlingStyles: [],
     battingPositions: [],
+    messages: [],
+    input: "",
   })
-
-  // AI Chat states (for aiinsight tab)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      type: "ai",
-      content:
-        "Hello! I'm your cricket data analyst. Ask me anything about cricket statistics, player performances, or match insights.",
-      timestamp: new Date(),
-    },
-  ])
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [activeChart, setActiveChart] = useState("performance")
+  const { isLoading, startLoading, stopLoading } = useLoading()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messages = filters.messages
+  const setIsLoading = startLoading
 
   const menuItems = [
     { id: "matches" as MenuTab, label: "Matches", icon: Trophy },
@@ -497,33 +495,58 @@ export default function InsightsPage() {
   }
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return
+    if (!filters.input.trim()) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: "user",
-      content: input,
+      content: filters.input,
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
+    setFilters((prev) => ({ ...prev, messages: [...prev.messages, userMessage] }))
+    setFilters((prev) => ({ ...prev, input: "" }))
+    startLoading()
 
-    setTimeout(() => {
-      const response = generateMockResponse(input)
+    try {
+      const response = await insightsApi.askInsight({
+        query: filters.input,
+        filters: {
+          players: filters.players,
+          teams: filters.teams,
+          formats: filters.matchTypes,
+          dateFrom: filters.dateFrom?.toISOString(),
+          dateTo: filters.dateTo?.toISOString(),
+          venues: filters.venues,
+        },
+      })
+
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: response.id,
         type: "ai",
-        content: response.content,
-        timestamp: new Date(),
+        content: response.response,
+        timestamp: new Date(response.timestamp),
         data: response.data,
         chartType: response.chartType,
       }
 
-      setMessages((prev) => [...prev, aiMessage])
-      setIsLoading(false)
-    }, 2000)
+      setFilters((prev) => ({ ...prev, messages: [...prev.messages, aiMessage] }))
+    } catch (error) {
+      console.error("AI insight failed:", error)
+      // Fallback to mock response
+      const mockResponse = generateMockResponse(filters.input)
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: "ai",
+        content: mockResponse.content,
+        timestamp: new Date(),
+        data: mockResponse.data,
+        chartType: mockResponse.chartType,
+      }
+      setFilters((prev) => ({ ...prev, messages: [...prev.messages, aiMessage] }))
+    } finally {
+      stopLoading()
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -546,6 +569,8 @@ export default function InsightsPage() {
       overs: [],
       bowlingStyles: [],
       battingPositions: [],
+      messages: [],
+      input: "",
     })
   }
 
@@ -564,11 +589,15 @@ export default function InsightsPage() {
               <Brain className="w-4 h-4 mr-2" />
               AI Insight
             </Button>
-            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-300 px-3 py-1">
+            <Badge variant="secondary" className="bg-green-500/20 text-green-400 px-3 py-1">
               {selectedItems.length} selected
             </Badge>
           </div>
@@ -584,11 +613,15 @@ export default function InsightsPage() {
               <Brain className="w-4 h-4 mr-2" />
               AI Analysis
             </Button>
-            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10 bg-transparent">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-700 text-slate-300 hover:bg-slate-800 bg-transparent"
+            >
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-300 px-3 py-1">
+            <Badge variant="secondary" className="bg-green-500/20 text-green-400 px-3 py-1">
               {selectedItems.length} selected
             </Badge>
           </div>
@@ -604,7 +637,7 @@ export default function InsightsPage() {
               <Brain className="w-4 h-4 mr-2" />
               Performance Analysis
             </Button>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-300 px-3 py-1">
+            <Badge variant="secondary" className="bg-green-500/20 text-green-400 px-3 py-1">
               {selectedItems.length} selected
             </Badge>
           </div>
@@ -620,7 +653,7 @@ export default function InsightsPage() {
               <Brain className="w-4 h-4 mr-2" />
               AI Insight
             </Button>
-            <Badge variant="secondary" className="bg-green-500/20 text-green-300 px-3 py-1">
+            <Badge variant="secondary" className="bg-green-500/20 text-green-400 px-3 py-1">
               {selectedItems.length} selected
             </Badge>
           </div>
@@ -635,36 +668,37 @@ export default function InsightsPage() {
       <>
         {/* Search */}
         <div>
-          <label className="text-sm font-medium text-white mb-2 block">Search</label>
+          <label className="text-sm font-medium text-slate-300 mb-2 block">Search</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
             <Input
               placeholder="Search..."
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-400"
             />
           </div>
         </div>
 
         {/* Date Range */}
         <div>
-          <label className="text-sm font-medium text-white mb-2 block">Date Range</label>
+          <label className="text-sm font-medium text-slate-300 mb-2 block">Date Range</label>
           <div className="space-y-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left font-normal bg-white/10 border-white/20 text-white"
+                  className="w-full justify-start text-left font-normal bg-slate-800/50 border-slate-700 text-white hover:bg-slate-700"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {filters.dateFrom ? format(filters.dateFrom, "PPP") : "From date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
                 <Calendar
                   mode="single"
                   selected={filters.dateFrom}
                   onSelect={(date) => setFilters((prev) => ({ ...prev, dateFrom: date }))}
                   initialFocus
+                  className="bg-slate-800 text-white"
                 />
               </PopoverContent>
             </Popover>
@@ -672,18 +706,19 @@ export default function InsightsPage() {
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-left font-normal bg-white/10 border-white/20 text-white"
+                  className="w-full justify-start text-left font-normal bg-slate-800/50 border-slate-700 text-white hover:bg-slate-700"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {filters.dateTo ? format(filters.dateTo, "PPP") : "To date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-700">
                 <Calendar
                   mode="single"
                   selected={filters.dateTo}
                   onSelect={(date) => setFilters((prev) => ({ ...prev, dateTo: date }))}
                   initialFocus
+                  className="bg-slate-800 text-white"
                 />
               </PopoverContent>
             </Popover>
@@ -698,7 +733,7 @@ export default function InsightsPage() {
           <>
             {commonFilters}
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Match Types</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Match Types</label>
               <MultiSelect
                 options={MATCH_TYPES}
                 selected={filters.matchTypes}
@@ -708,7 +743,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Teams</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Teams</label>
               <MultiSelect
                 options={TEAMS}
                 selected={filters.teams}
@@ -718,7 +753,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Venues</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Venues</label>
               <MultiSelect
                 options={VENUES}
                 selected={filters.venues}
@@ -728,7 +763,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Tournaments</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Tournaments</label>
               <MultiSelect
                 options={TOURNAMENTS}
                 selected={filters.tournaments}
@@ -738,7 +773,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Seasons</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Seasons</label>
               <MultiSelect
                 options={SEASONS}
                 selected={filters.seasons}
@@ -755,7 +790,7 @@ export default function InsightsPage() {
           <>
             {commonFilters}
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Players</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Players</label>
               <MultiSelect
                 options={SAMPLE_PLAYERS}
                 selected={filters.players}
@@ -765,7 +800,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Teams</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Teams</label>
               <MultiSelect
                 options={TEAMS}
                 selected={filters.teams}
@@ -775,7 +810,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Batting Position</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Batting Position</label>
               <MultiSelect
                 options={BATTING_POSITIONS}
                 selected={filters.battingPositions}
@@ -785,7 +820,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Statistics</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Statistics</label>
               <MultiSelect
                 options={STATISTICS}
                 selected={filters.statistics}
@@ -802,7 +837,7 @@ export default function InsightsPage() {
           <>
             {commonFilters}
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Innings</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Innings</label>
               <MultiSelect
                 options={INNINGS}
                 selected={filters.innings}
@@ -812,7 +847,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Batting Position</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Batting Position</label>
               <MultiSelect
                 options={BATTING_POSITIONS}
                 selected={filters.battingPositions}
@@ -822,7 +857,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Players</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Players</label>
               <MultiSelect
                 options={SAMPLE_PLAYERS}
                 selected={filters.players}
@@ -839,7 +874,7 @@ export default function InsightsPage() {
           <>
             {commonFilters}
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Over Phase</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Over Phase</label>
               <MultiSelect
                 options={OVERS}
                 selected={filters.overs}
@@ -849,7 +884,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Bowling Style</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Bowling Style</label>
               <MultiSelect
                 options={BOWLING_STYLES}
                 selected={filters.bowlingStyles}
@@ -859,7 +894,7 @@ export default function InsightsPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-white mb-2 block">Players</label>
+              <label className="text-sm font-medium text-slate-300 mb-2 block">Players</label>
               <MultiSelect
                 options={SAMPLE_PLAYERS}
                 selected={filters.players}
@@ -878,8 +913,8 @@ export default function InsightsPage() {
 
   const renderFilters = () => {
     return (
-      <Card className="bg-white/10 border-white/20 backdrop-blur-lg">
-        <CardHeader>
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-white text-lg flex items-center gap-2">
               <Filter className="w-5 h-5" />
@@ -889,16 +924,18 @@ export default function InsightsPage() {
               size="sm"
               variant="outline"
               onClick={clearAllFilters}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-600 text-xs px-2 py-1 h-8"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-3 h-3 mr-1" />
               Clear All
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {getFiltersForTab()}
-          <Button className="w-full bg-gradient-to-r from-green-500 to-blue-600">Apply Filters</Button>
+          <Button className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700">
+            Apply Filters
+          </Button>
         </CardContent>
       </Card>
     )
@@ -977,7 +1014,7 @@ export default function InsightsPage() {
       <div className="space-y-6">
         {/* Chat Messages */}
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-          {messages.map((message) => (
+          {filters.messages.map((message) => (
             <div key={message.id} className={`flex gap-3 ${message.type === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`flex gap-3 max-w-[80%] ${message.type === "user" ? "flex-row-reverse" : "flex-row"}`}>
                 <div
@@ -997,7 +1034,7 @@ export default function InsightsPage() {
                   className={`rounded-lg p-4 ${
                     message.type === "user"
                       ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white"
-                      : "bg-white/10 backdrop-blur-lg border border-white/20 text-white"
+                      : "bg-slate-800/50 border border-slate-700 text-white"
                   }`}
                 >
                   <p className="text-sm">{message.content}</p>
@@ -1022,7 +1059,7 @@ export default function InsightsPage() {
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-r from-green-500 to-blue-600">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="rounded-lg p-4 bg-white/10 backdrop-blur-lg border border-white/20 text-white">
+                <div className="rounded-lg p-4 bg-slate-800/50 border border-slate-700 text-white">
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <p className="text-sm">Analyzing cricket data...</p>
@@ -1035,19 +1072,19 @@ export default function InsightsPage() {
         </div>
 
         {/* Input Area */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg border border-white/20 p-4">
+        <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
           <div className="flex gap-2">
             <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              value={filters.input}
+              onChange={(e) => setFilters((prev) => ({ ...prev, input: e.target.value }))}
               onKeyPress={handleKeyPress}
               placeholder="Ask me about cricket statistics, player performance, or match insights..."
-              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+              className="flex-1 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
               disabled={isLoading}
             />
             <Button
               onClick={handleSendMessage}
-              disabled={!input.trim() || isLoading}
+              disabled={!filters.input.trim() || isLoading}
               className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
             >
               <Send className="w-4 h-4" />
@@ -1058,26 +1095,62 @@ export default function InsightsPage() {
     )
   }
 
+  const insights = [
+    {
+      title: "Batting Performance Trends",
+      description: "Analysis of batting averages across different formats and conditions",
+      trend: "+12.5%",
+      value: "45.2",
+      icon: TrendingUp,
+    },
+    {
+      title: "Bowling Effectiveness",
+      description: "Strike rates and economy rates comparison by venue type",
+      trend: "-3.2%",
+      value: "28.4",
+      icon: BarChart3,
+    },
+    {
+      title: "Team Win Probability",
+      description: "Predictive analysis based on historical performance data",
+      trend: "+8.7%",
+      value: "67.8%",
+      icon: PieChart,
+    },
+    {
+      title: "Player Form Index",
+      description: "Recent performance metrics weighted by match importance",
+      trend: "+15.3%",
+      value: "82.1",
+      icon: LineChart,
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+
+      <header className="relative z-50">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-purple-900/90 to-slate-900/90 dark:from-slate-900/90 dark:via-purple-900/90 dark:to-slate-900/90 light:from-slate-800/95 light:via-blue-900/95 light:to-slate-800/95 backdrop-blur-sm"></div>
+        <div className="relative px-6 py-4">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center animate-pulse-glow">
+                <span className="text-white font-bold text-lg">CI</span>
               </div>
-              <h1 className="text-xl font-bold text-white">Cricket Insights</h1>
+              <div>
+                 <h1 className="text-xl font-bold text-white">Cricket Insights</h1>
+                <p className="text-xs text-slate-400">Advanced Analytics</p>
+              </div>
             </div>
-            <NavigationMenu currentPage="insights" />
+            <NavigationMenu currentPage="insights"/>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="container mx-auto px-4 py-6">
         {/* Menu Tabs */}
-        <div className="flex flex-wrap gap-2 mb-6 p-1 bg-white/10 backdrop-blur-lg rounded-lg border border-white/20">
+        <div className="flex flex-wrap gap-2 mb-6 p-1 bg-slate-800/50 rounded-lg border border-slate-700">
           {menuItems.map((item) => {
             const Icon = item.icon
             return (
@@ -1093,8 +1166,8 @@ export default function InsightsPage() {
                   transition-all duration-300
                   ${
                     activeTab === item.id
-                      ? "bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg"
-                      : "text-white hover:bg-white/10 hover:text-white"
+                      ? "bg-gradient-to-r from-green-500 to-blue-600 text-white"
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
                   }
                 `}
               >
@@ -1128,6 +1201,11 @@ export default function InsightsPage() {
             </div>
           </div>
         )}
+
+       
+
+      
+    
       </div>
     </div>
   )
